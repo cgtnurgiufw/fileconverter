@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FREE CONVERTER - Your Client-Side File Converter</title>
+    <!-- Google Fonts - Inter for a modern, clean look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Variables for Easy Theming */
+        :root {
+            --bg-color: #f7fafa; /* Light off-white as requested by hex */
+            --primary-text-color: #2c3e50; /* Dark navy/charcoal for premium contrast */
+            --accent-color: #6a5acd; /* A vibrant purple-blue inspired by the images */
+            --accent-light: #8e80eb; /* Lighter shade for hover */
+            --border-color: #dbe0e7; /* Light grey for borders */
+            --button-text-color: #ffffff;
+            --success-color: #27ae60; /* Green for success messages */
+            --error-color: #e74c3c; /* Red for error messages */
+            --neutral-status-color: #536dfe; /* Blue for converting status */
+            --warning-color: #f0ad4e; /* Yellow for warning messages */
+            --shadow-light: rgba(0, 0, 0, 0.05); /* Subtle shadow */
+            --shadow-medium: rgba(0, 0, 0, 0.1); /* Slightly more prominent shadow */
+            --panel-bg: #f9f9fb; /* Background for format panel */
+            --category-text: #7f8c8d; /* Grey for category text */
+            --search-bg: #eef1f6; /* Search input background */
+            --format-tag-bg: #f2f4f8; /* Default format tag background */
+            --active-format-tag-bg: var(--accent-color);
+            --active-format-tag-text: var(--button-text-color);
+        }
+
+        /* Basic Resets */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Body Styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-text-color);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden; /* Prevent horizontal scroll on small screens */
+            -webkit-font-smoothing: antialiased; /* Better font rendering */
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Main Container Styling */
+        .container {
+            background-color: #ffffff; /* Slightly brighter white for the card */
+            border-radius: 12px;
+            box-shadow: 0 10px 30px var(--shadow-medium);
+            padding: 40px;
+            max-width: 800px; /* Increased max-width for new UI */
+            width: 100%;
+            text-align: center;
+            animation: fadeIn 0.8s ease-out; /* Simple fade-in animation */
+            position: relative; /* For dropdown positioning */
+        }
+
+        /* Fade-in Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header Styling */
+        h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--primary-text-color);
+            letter-spacing: -0.02em;
+        }
+
+        h1 span {
+            color: var(--accent-color); /* Highlight "CONVERTER" */
+        }
+
+        .tagline {
+            font-size: 1.1em;
+            color: #7f8c8d;
+            margin-bottom: 30px; /* Adjust margin after tagline */
+        }
+
+        /* --- Drop Area Styling --- */
+        .drop-area {
+            border: 3px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            background-color: #fdfdfd; /* Off-white for drag area */
+        }
+
+        .drop-area:hover,
+        .drop-area.highlight {
+            border-color: var(--accent-color);
+            background-color: #e8f4fb; /* Light blue on hover/drag */
+        }
+
+        .drop-area p {
+            font-size: 1.1em;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+        }
+
+        /* Hide default file input */
+        .drop-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+        }
+
+        /* File Info Display */
+        .file-info {
+            font-size: 1.1em;
+            /* Using var(--primary-text-color) by default, or specific color when empty */
+            margin-bottom: 25px;
+            font-weight: 600;
+            min-height: 25px; /* Reserve space to prevent layout shift */
+            display: inline-block; /* Allows border-bottom to wrap text */
+            padding: 5px 10px; /* Add some padding around the text */
+            border-radius: 4px; /* Slight roundness for the highlight effect */
+            transition: all 0.3s ease; /* Smooth transition for styling changes */
+        }
+
+        /* Highlight for "No file selected." */
+        .file-info.empty-highlight {
+            color: var(--error-color); /* Red text */
+            border-bottom: 2px solid var(--error-color); /* Red underline */
+            background-color: #fefafa; /* Very subtle background */
+        }
+
+        /* --- Format Selection Panel --- */
+        .format-selection-panel {
+            display: flex;
+            background-color: var(--panel-bg);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.03); /* Inner shadow */
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            gap: 20px; /* Gap between left and right sections */
+        }
+
+        .format-panel-left {
+            flex: 0 0 150px; /* Fixed width for categories */
+            padding-right: 20px;
+            border-right: 1px solid var(--border-color);
+            text-align: left;
+        }
+        
+        .format-panel-right {
+            flex: 1; /* Takes remaining space */
+            min-width: 300px; /* Ensure content doesn't shrink too much */
+        }
+
+        .search-format-input {
+            width: 100%;
+            padding: 12px 15px;
+            padding-left: 45px; /* Space for search icon */
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            color: var(--primary-text-color);
+            background-color: #ffffff;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            /* Inline SVG for search icon */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%237f8c8d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 15px center;
+            background-size: 20px;
+        }
+
+        .search-format-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(106, 90, 205, 0.2);
+        }
+
+        .format-categories ul {
+            list-style: none;
+        }
+
+        .format-categories li {
+            margin-bottom: 10px;
+        }
+
+        .format-categories li a {
+            display: block;
+            padding: 10px 15px;
+            color: var(--category-text);
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            position: relative;
+        }
+
+        .format-categories li a:hover {
+            background-color: #eef1f6;
+            color: var(--primary-text-color);
+        }
+
+        .format-categories li a.active {
+            color: var(--accent-color);
+            background-color: #eef1f6;
+        }
+
+        .format-categories li a.active::after {
+            content: '►'; /* Unicode right arrow */
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8em;
+            color: var(--accent-color);
+        }
+
+        .format-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Auto-fill for responsiveness */
+            gap: 10px;
+            max-height: 250px; /* Limit height for scrollbar */
+            overflow-y: auto; /* Enable vertical scrollbar */
+            padding-right: 10px; /* Space for scrollbar */
+        }
+        /* Custom scrollbar styles */
+        .format-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+        .format-grid::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .format-grid::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 10px;
+        }
+        .format-grid::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
+        }
+
+
+        .format-tag {
+            background-color: var(--format-tag-bg);
+            color: var(--primary-text-color);
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+            white-space: nowrap; /* Prevent breaking */
+        }
+
+        .format-tag:hover:not(.active) {
+            background-color: #eef1f6;
+            transform: translateY(-1px);
+        }
+
+        .format-tag.active {
+            background-color: var(--active-format-tag-bg);
+            color: var(--active-format-tag-text);
+            box-shadow: 0 2px 8px var(--shadow-light);
+        }
+
+        /* --- Report Tab Specific Styles --- */
+        .report-suggest-section {
+            text-align: left;
+            padding: 20px;
+            background-color: #fdfdfd;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .report-suggest-section p {
+            font-size: 1em;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .report-suggest-section .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+        }
+        .report-suggest-section input[type="text"] {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            color: var(--primary-text-color);
+            background-color: #ffffff;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            min-width: 150px; /* Prevent shrinking too much */
+        }
+        .report-suggest-section input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(106, 90, 205, 0.2);
+        }
+        .report-suggest-section .btn {
+            padding: 12px 25px;
+            font-size: 1em;
+            white-space: nowrap;
+        }
+
+
+        /* Button Group */
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px; /* Adjusted margin-top */
+        }
+
+        /* Button Styling (re-used from previous, adjusted for new context) */
+        .btn {
+            background-color: var(--accent-color);
+            color: var(--button-text-color);
+            border: none;
+            border-radius: 8px;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px var(--shadow-light);
+            text-decoration: none; /* For download button acting as a link */
+            display: inline-flex; /* Allows icon if added */
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:hover:not(:disabled) {
+            background-color: var(--accent-light);
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px var(--shadow-light); /* Press down effect */
+        }
+
+        .btn:disabled {
+            background-color: #b0c4de; /* Lighter grey for disabled state */
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Status Messages */
+        .status-message {
+            font-size: 1em;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            min-height: 20px; /* Reserve space */
+        }
+
+        .status-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .status-message.success {
+            background-color: #e6f7ef;
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .status-message.error {
+            background-color: #fbecec;
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+        }
+
+        .status-message.neutral { /* For "Converting..." message */
+            background-color: #ebf5fa;
+            color: var(--neutral-status-color);
+            border: 1px solid var(--neutral-status-color);
+        }
+        
+        /* Specific warning for unsupported format selection */
+        .status-message.warning {
+            background-color: #fff3cd; /* Light yellow */
+            color: var(--warning-color); /* Dark yellow text */
+            border: 1px solid #ffeeba;
+        }
+
+
+        /* Footer */
+        .footer {
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        .footer p:first-child {
+            margin-bottom: 8px;
+        }
+
+        /* Responsive Design (Media Queries) */
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+                max-width: 95%;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .tagline {
+                font-size: 1em;
+            }
+
+            .drop-area {
+                padding: 30px 15px;
+            }
+
+            .drop-area p {
+                font-size: 1em;
+            }
+
+            .format-selection-panel {
+                flex-direction: column; /* Stack left and right sections */
+                gap: 0;
+            }
+            
+            .format-panel-left {
+                flex: none; /* Remove fixed width */
+                width: 100%;
+                padding-right: 0;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color); /* Add bottom border */
+                margin-bottom: 20px;
+                padding-bottom: 20px;
+            }
+
+            .format-categories ul {
+                display: flex; /* Make categories horizontal */
+                overflow-x: auto; /* Enable horizontal scroll for categories */
+                white-space: nowrap;
+                padding-bottom: 10px; /* Space for scrollbar */
+                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+                justify-content: flex-start; /* Align categories to start */
+                gap: 10px; /* Space between categories */
+            }
+
+            /* Hide scrollbar for categories on some browsers */
+            .format-categories::-webkit-scrollbar {
+                height: 0;
+            }
+            .format-categories {
+                -ms-overflow-style: none;  /* IE and Edge */
+                scrollbar-width: none;  /* Firefox */
+            }
+
+
+            .format-categories li {
+                margin-bottom: 0;
+            }
+
+            .format-categories li a {
+                padding: 8px 12px;
+                display: inline-block; /* Allow horizontal layout */
+            }
+
+            .format-categories li a.active::after {
+                content: ''; /* Hide arrow on mobile horizontal layout */
+            }
+
+            .format-panel-right {
+                min-width: unset; /* Remove min-width */
+                width: 100%;
+            }
+
+            .format-grid {
+                max-height: 200px; /* Adjust height for smaller screens */
+            }
+
+            .button-group {
+                flex-direction: column; /* Stack buttons vertically */
+                gap: 15px;
+            }
+
+            .btn {
+                width: 100%; /* Full width buttons */
+                padding: 12px 20px;
+                font-size: 1em;
+            }
+            
+            .report-suggest-section .input-group {
+                flex-direction: column;
+            }
+            .report-suggest-section input[type="text"],
+            .report-suggest-section .btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 20px;
+            }
+
+            .container {
+                padding: 25px 15px;
+            }
+
+            .drop-area {
+                padding: 25px 10px;
+            }
+
+            .file-info, .conversion-options label {
+                font-size: 1em;
+            }
+
+            .footer {
+                font-size: 0.8em;
+            }
+
+            .search-format-input {
+                padding: 10px 12px;
+                padding-left: 40px;
+                font-size: 0.95em;
+            }
+            .report-suggest-section input[type="text"] {
+                padding: 10px 12px;
+                font-size: 0.95em;
+            }
+            .report-suggest-section .btn {
+                padding: 10px 15px;
+                font-size: 0.95em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FREE <span>CONVERTER</span></h1>
+        <p class="tagline">Your fast and private client-side image converter.</p>
+
+        <div id="drop-area" class="drop-area">
+            <!-- Hidden file input triggered by the button inside drop-area -->
+            <input type="file" id="file-input" accept="image/*">
+            <div class="upload-icon">↓</div> <!-- Unicode down arrow icon -->
+            <p>Drag & Drop your image here or</p>
+            <button class="btn" onclick="document.getElementById('file-input').click()">Browse Files</button>
+        </div>
+
+        <div id="file-info" class="file-info">No file selected.</div>
+
+        <!-- Format Selection Panel -->
+        <div class="format-selection-panel">
+            <div class="format-panel-left">
+                <input type="text" id="search-format" class="search-format-input" placeholder="Search Format">
+                <div class="format-categories">
+                    <ul>
+                        <li><a href="#" data-category="image" class="active">Image</a></li>
+                        <li><a href="#" data-category="document">Document</a></li>
+                        <li><a href="#" data-category="report">Report</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="format-panel-right">
+                <div id="format-grid" class="format-grid">
+                    <!-- Format tags will be rendered here by JS -->
+                </div>
+                <!-- Report Suggestion Section (hidden by default) -->
+                <div id="report-suggest-section" class="report-suggest-section" style="display: none;">
+                    <p id="suggest-text">Suggest an output file format for .ext files</p>
+                    <div class="input-group">
+                        <input type="text" id="suggest-ext-input" placeholder="Enter a file format (i.e. .mp3)">
+                        <button id="suggest-btn" class="btn">Suggest</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button id="convert-btn" class="btn" disabled>Convert</button>
+            <a id="download-btn" class="btn" disabled>Download</a>
+        </div>
+
+        <div id="status-message" class="status-message"></div>
+
+        <div class="footer">
+            <p>© 2023 FREE CONVERTER. All rights reserved.</p>
+            <p><strong>Disclaimer:</strong> This converter runs entirely in your browser. No files are uploaded to any server. Due to browser limitations and "no backend/libraries" constraint, actual conversion functionality is currently limited to <strong>image inputs (PNG, JPEG, WebP, etc.) converting to PNG, JPEG, or WebP outputs only.</strong> Document and other file type conversions, as well as cloud storage integrations, are UI placeholders and require server-side processing or external libraries not permitted by this demo.</p>
+        </div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const fileInput = document.getElementById('file-input');
+        const dropArea = document.getElementById('drop-area');
+        const fileInfo = document.getElementById('file-info');
+        const searchFormatInput = document.getElementById('search-format');
+        const formatCategories = document.querySelector('.format-categories ul');
+        const formatGrid = document.getElementById('format-grid');
+        const reportSuggestSection = document.getElementById('report-suggest-section');
+        const suggestText = document.getElementById('suggest-text');
+        const suggestExtInput = document.getElementById('suggest-ext-input');
+        const suggestBtn = document.getElementById('suggest-btn');
+        const convertBtn = document.getElementById('convert-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const statusMessage = document.getElementById('status-message');
+
+        // State variables
+        let selectedFile = null;
+        let selectedOutputFormatName = null; // Stores the selected format's display name (e.g., 'PNG', 'JPEG')
+        let convertedBlob = null;
+        let convertedFileUrl = null;
+        let currentCategory = 'image'; // Default active category
+
+        // --- Format Data (MIME Types and display names) ---
+        // IMPORTANT: Only image/png, image/jpeg, image/webp are truly supported for OUTPUT by `canvas.toBlob()`.
+        // Other formats are placeholders for UI demonstration only.
+        const allFormats = {
+            image: [
+                { name: 'BMP', mime: 'image/bmp', supportedOutput: false }, // Can be input, but not natively output by toBlob
+                { name: 'EPS', mime: 'application/postscript', supportedOutput: false }, // Not supported client-side
+                { name: 'GIF', mime: 'image/gif', supportedOutput: false }, // Can be input, but output animated GIF is complex
+                { name: 'ICO', mime: 'image/x-icon', supportedOutput: false }, // Not supported client-side
+                { name: 'JPEG', mime: 'image/jpeg', supportedOutput: true },
+                { name: 'JPG', mime: 'image/jpeg', supportedOutput: true }, // Alias for JPEG
+                { name: 'ODD', mime: 'application/vnd.oasis.opendocument.graphics', supportedOutput: false }, // Placeholder
+                { name: 'PNG', mime: 'image/png', supportedOutput: true },
+                { name: 'PSD', mime: 'image/vnd.adobe.photoshop', supportedOutput: false }, // Not supported client-side
+                { name: 'SVG', mime: 'image/svg+xml', supportedOutput: false }, // Can be input, but not output directly
+                { name: 'TGA', mime: 'image/x-tga', supportedOutput: false }, // Not directly supported
+                { name: 'TIFF', mime: 'image/tiff', supportedOutput: false },
+                { name: 'WebP', mime: 'image/webp', supportedOutput: true }
+            ],
+            document: [
+                { name: 'DOC', mime: 'application/msword', supportedOutput: false },
+                { name: 'DOCX', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', supportedOutput: false },
+                { name: 'PDF', mime: 'application/pdf', supportedOutput: false },
+                { name: 'PS', mime: 'application/postscript', supportedOutput: false },
+                { name: 'TEXT', mime: 'text/plain', supportedOutput: false },
+                { name: 'TXT', mime: 'text/plain', supportedOutput: false },
+                { name: 'WORD', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', supportedOutput: false }
+            ],
+            report: [] // This category will trigger the suggestion input
+        };
+
+        // --- Initialize UI on Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            resetState();
+            // Set 'Image' as active by default and render formats
+            setActiveCategory('image'); 
+            renderFormats();
+        });
+
+        // --- Drag & Drop Event Listeners ---
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.add('highlight'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.remove('highlight'), false);
+        });
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        // --- File Input Change Listener (triggered by "Browse Files") ---
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // --- Core File Handling Logic ---
+        function handleFiles(files) {
+            if (files.length === 0 || files.length > 1) {
+                displayMessage('Please select a single file.', 'error');
+                resetState();
+                return;
+            }
+
+            const file = files[0];
+            
+            // Remove highlight on file selection
+            fileInfo.classList.remove('empty-highlight');
+
+            // Check if the input file is an image for potential conversion
+            if (!file.type.startsWith('image/')) {
+                displayMessage('Currently, only image files can be converted client-side (e.g., PNG, JPEG, WebP, GIF input). Other file types are displayed but cannot be converted with this tool.', 'warning');
+                fileInfo.textContent = `Selected: ${file.name} (Conversion Not Supported)`;
+                selectedFile = null; // Clear selected file if not an image for actual conversion
+                convertBtn.disabled = true;
+                downloadBtn.disabled = true;
+                return;
+            }
+
+            selectedFile = file;
+            fileInfo.textContent = `Selected: ${file.name}`;
+            
+            // Re-enable convert button only if a supported output format is already selected
+            const currentlySelectedOutputFormat = allFormats[currentCategory].find(f => f.name === selectedOutputFormatName);
+            if (currentlySelectedOutputFormat && currentlySelectedOutputFormat.supportedOutput) {
+                 convertBtn.disabled = false;
+                 displayMessage(''); // Clear previous status messages if any
+            } else {
+                 convertBtn.disabled = true;
+                 displayMessage(`Please select a supported output format (PNG, JPEG, WebP) to enable conversion.`, 'warning');
+            }
+           
+            downloadBtn.disabled = true;
+            if (convertedFileUrl) {
+                URL.revokeObjectURL(convertedFileUrl);
+                convertedFileUrl = null;
+            }
+            downloadBtn.removeAttribute('href');
+            downloadBtn.removeAttribute('download');
+
+            // Update suggest section text based on selected file extension
+            const fileExt = selectedFile.name.split('.').pop().toLowerCase();
+            suggestText.textContent = `Suggest an output file format for .${fileExt} files`;
+            suggestExtInput.value = ''; // Clear suggested input
+        }
+
+        // --- Format Selection Panel Logic ---
+        formatCategories.addEventListener('click', (e) => {
+            e.preventDefault();
+            const categoryLink = e.target.closest('a');
+            if (categoryLink) {
+                const category = categoryLink.dataset.category;
+                setActiveCategory(category);
+                renderFormats();
+                // When category changes, reset output format selection
+                selectedOutputFormatName = null;
+                // Update convert button state based on new category/format availability
+                if (currentCategory !== 'image' || !selectedFile) {
+                    convertBtn.disabled = true;
+                    if (currentCategory !== 'image') {
+                        displayMessage(`Only 'Image' category conversions are supported.`, 'warning');
+                    } else if (!selectedFile) {
+                        displayMessage('No file selected.', 'error');
+                    }
+                } else {
+                    displayMessage(''); // Clear previous message
+                }
+            }
+        });
+
+        searchFormatInput.addEventListener('input', renderFormats);
+
+        function setActiveCategory(category) {
+            currentCategory = category;
+            document.querySelectorAll('.format-categories a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`.format-categories a[data-category="${category}"]`).classList.add('active');
+            
+            // Toggle visibility of report suggestion section
+            if (category === 'report') {
+                formatGrid.style.display = 'none';
+                reportSuggestSection.style.display = 'block';
+            } else {
+                formatGrid.style.display = 'grid';
+                reportSuggestSection.style.display = 'none';
+            }
+        }
+
+        function renderFormats() {
+            formatGrid.innerHTML = ''; // Clear existing tags
+            let formatsToDisplay = [];
+
+            if (currentCategory === 'report') {
+                // 'Report' category has its own section, so the grid is empty.
+                return;
+            } else {
+                formatsToDisplay = allFormats[currentCategory];
+            }
+
+            const searchTerm = searchFormatInput.value.toLowerCase();
+
+            formatsToDisplay
+                .filter(format => format.name.toLowerCase().includes(searchTerm))
+                .forEach(format => {
+                    const tag = document.createElement('div');
+                    tag.classList.add('format-tag');
+                    if (selectedOutputFormatName === format.name) {
+                        tag.classList.add('active');
+                    }
+                    tag.textContent = format.name;
+                    tag.dataset.mime = format.mime; // Store mime type
+                    tag.dataset.supportedOutput = format.supportedOutput; // Store support status
+
+                    tag.addEventListener('click', () => {
+                        // Remove active from all other tags
+                        document.querySelectorAll('.format-tag').forEach(t => t.classList.remove('active'));
+                        tag.classList.add('active');
+                        selectedOutputFormatName = format.name; // Store the selected display name
+                        
+                        // Display message if output format is not truly supported client-side
+                        if (format.supportedOutput === false) {
+                            displayMessage(`Conversion to ${format.name} is not directly supported client-side. Output will be PNG/JPEG/WebP if possible.`, 'warning');
+                            convertBtn.disabled = true; // Disable convert if output is not supported
+                        } else if (!selectedFile) {
+                            displayMessage('No file selected.', 'error');
+                            convertBtn.disabled = true;
+                        } else {
+                            displayMessage(''); // Clear message
+                            convertBtn.disabled = false; // Re-enable convert if supported format chosen
+                        }
+                    });
+                    formatGrid.appendChild(tag);
+                });
+            
+            // If no format is selected or the previously selected one isn't available in current view,
+            // try to select the first supported image format
+            if (!selectedOutputFormatName || !document.querySelector(`.format-tag[data-name="${selectedOutputFormatName}"]`)) {
+                if (currentCategory === 'image') {
+                    const firstSupported = formatsToDisplay.find(f => f.supportedOutput === true);
+                    if (firstSupported) {
+                        const firstTag = formatGrid.querySelector(`[data-mime="${firstSupported.mime}"]`);
+                        if (firstTag) {
+                            firstTag.classList.add('active');
+                            selectedOutputFormatName = firstSupported.name;
+                            convertBtn.disabled = selectedFile === null; // Enable if file is selected
+                            displayMessage(''); // Clear previous status
+                        }
+                    } else {
+                         convertBtn.disabled = true;
+                         displayMessage('No supported output formats in this category.', 'error');
+                    }
+                } else {
+                    convertBtn.disabled = true;
+                    // No automatic selection for non-image categories
+                    selectedOutputFormatName = null; 
+                }
+            }
+        }
+
+        // --- Conversion Logic ---
+        convertBtn.addEventListener('click', convertFile);
+
+        function convertFile() {
+            if (!selectedFile) {
+                displayMessage('No file to convert. Please select an image first.', 'error');
+                return;
+            }
+            if (!selectedOutputFormatName) {
+                displayMessage('Please select an output format.', 'error');
+                return;
+            }
+
+            // Find the full format object based on its display name
+            const targetFormat = allFormats[currentCategory].find(f => f.name === selectedOutputFormatName);
+
+            // If the selected format is NOT supported for client-side output, warn and block conversion
+            if (!targetFormat || targetFormat.supportedOutput === false) {
+                displayMessage(`Conversion to ${selectedOutputFormatName} is not supported client-side with pure JavaScript. Please choose PNG, JPEG, or WebP.`, 'error');
+                convertBtn.disabled = true;
+                return;
+            }
+
+            displayMessage('Converting...', 'neutral');
+            convertBtn.disabled = true;
+            downloadBtn.disabled = true;
+
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // Set canvas dimensions to match the image
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+
+                    // Draw the image onto the canvas
+                    ctx.drawImage(img, 0, 0);
+
+                    // Map selected output format to its MIME type for toBlob()
+                    // Fallback to PNG if something goes wrong, as it's widely supported.
+                    const outputMimeType = targetFormat.mime; // This will be image/png, image/jpeg, or image/webp
+                    const quality = 0.9; // For JPEG/WebP
+
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            convertedBlob = blob;
+                            
+                            if (convertedFileUrl) {
+                                URL.revokeObjectURL(convertedFileUrl);
+                            }
+                            convertedFileUrl = URL.createObjectURL(blob);
+                            
+                            downloadBtn.href = convertedFileUrl;
+                            
+                            const originalFileName = selectedFile.name.split('.').slice(0, -1).join('.');
+                            // Determine the new file name and extension based on the actual output MIME type
+                            let outputExtension = '';
+                            if (outputMimeType === 'image/jpeg') outputExtension = 'jpeg';
+                            else if (outputMimeType === 'image/png') outputExtension = 'png';
+                            else if (outputMimeType === 'image/webp') outputExtension = 'webp';
+                            // If somehow a non-supported image output MIME gets here, fall back to selected name
+                            else outputExtension = selectedOutputFormatName.toLowerCase(); 
+
+                            const newFileName = `${originalFileName}.${outputExtension}`;
+                            downloadBtn.download = newFileName;
+
+                            downloadBtn.disabled = false;
+                            displayMessage('Conversion successful! Click "Download" to save.', 'success');
+                        } else {
+                            displayMessage('Failed to create converted file (Blob creation failed).', 'error');
+                        }
+                        convertBtn.disabled = false;
+                    }, outputMimeType, quality);
+                };
+                img.onerror = () => {
+                    displayMessage('Error loading image. Please ensure it is a valid image file.', 'error');
+                    convertBtn.disabled = false;
+                    resetState();
+                };
+                img.src = e.target.result;
+            };
+
+            reader.onerror = () => {
+                displayMessage('Error reading the file.', 'error');
+                convertBtn.disabled = false;
+                resetState();
+            };
+
+            reader.readAsDataURL(selectedFile);
+        }
+
+        // --- Helper for Status Messages ---
+        function displayMessage(message, type = '') {
+            statusMessage.textContent = message;
+            statusMessage.className = 'status-message'; // Reset classes
+            if (message) {
+                statusMessage.classList.add('show');
+                if (type === 'success') {
+                    statusMessage.classList.add('success');
+                } else if (type === 'error') {
+                    statusMessage.classList.add('error');
+                } else if (type === 'neutral') {
+                    statusMessage.classList.add('neutral');
+                } else if (type === 'warning') {
+                    statusMessage.classList.add('warning');
+                }
+            }
+        }
+
+        // --- Reset UI State ---
+        function resetState() {
+            selectedFile = null;
+            selectedOutputFormatName = null;
+            if (convertedFileUrl) {
+                URL.revokeObjectURL(convertedFileUrl);
+                convertedFileUrl = null;
+            }
+            convertedBlob = null;
+            fileInfo.textContent = 'No file selected.';
+            fileInfo.classList.add('empty-highlight'); // Add highlight when no file is selected
+            convertBtn.disabled = true;
+            downloadBtn.disabled = true;
+            downloadBtn.removeAttribute('href');
+            downloadBtn.removeAttribute('download');
+            displayMessage('');
+            fileInput.value = ''; // Clear the file input element's value
+            searchFormatInput.value = ''; // Clear search
+            // Reset report suggestion section
+            suggestText.textContent = `Suggest an output file format for .ext files`;
+            suggestExtInput.value = '';
+            // Ensure image category is active and re-render formats to reset active state
+            setActiveCategory('image'); 
+            renderFormats();
+        }
+
+        // --- Placeholder for Suggest Button (Report tab) ---
+        suggestBtn.addEventListener('click', () => {
+            const inputExt = suggestExtInput.value.trim().toLowerCase();
+            if (inputExt) {
+                displayMessage(`Feature for suggesting/converting to .${inputExt} is a placeholder and not implemented client-side.`, 'warning');
+            } else {
+                displayMessage('Please enter a format extension to suggest.', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
